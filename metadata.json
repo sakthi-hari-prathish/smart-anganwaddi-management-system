@@ -1,0 +1,6 @@
+{
+  "name": "Anganwadi Care",
+  "description": "Modern Anganwadi Management System supporting Parents, Anganwadi Helpers, and Supervisors with health tracking, inventory, and analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
