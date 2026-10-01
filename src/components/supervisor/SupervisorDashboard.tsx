@@ -19,9 +19,23 @@ import {
   Check,
   Send,
   Layers,
-  Sparkles
+  Sparkles,
+  HeartPulse,
+  Syringe,
+  Activity,
+  Pill,
+  Lock,
+  UserCheck,
+  Scale,
+  Accessibility,
+  CalendarCheck,
+  Stethoscope,
+  UtensilsCrossed,
+  FileBarChart2,
+  Settings,
+  Printer
 } from 'lucide-react';
-import { AnganwadiCenter, StockRequisition, Announcement } from '../../types';
+import { AnganwadiCenter, StockRequisition, Announcement, Child, SidebarSection, HealthSubSection } from '../../types';
 import { BroadcastNoticeModal } from '../modals/BroadcastNoticeModal';
 
 interface SupervisorDashboardProps {
@@ -29,6 +43,10 @@ interface SupervisorDashboardProps {
   requisitions: StockRequisition[];
   onApproveRequisition: (reqId: string) => void;
   onBroadcastNotice: (notice: Omit<Announcement, 'id'>) => void;
+  childrenList?: Child[];
+  activeSection?: SidebarSection;
+  healthSubSection?: HealthSubSection;
+  onNavigateSection?: (section: SidebarSection, subSection?: HealthSubSection) => void;
 }
 
 export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({
@@ -36,11 +54,14 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({
   requisitions,
   onApproveRequisition,
   onBroadcastNotice,
+  childrenList = [],
+  activeSection = 'home',
+  healthSubSection = 'overview',
+  onNavigateSection,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'requisitions'>('overview');
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [stockStatusFilter, setStockStatusFilter] = useState<'All' | 'Low/Critical' | 'Pending Meal'>('All');
+  const [centerFilter, setCenterFilter] = useState<string>('All');
   const [selectedCenter, setSelectedCenter] = useState<AnganwadiCenter | null>(null);
 
   // High-Level Stat Calculations
@@ -55,6 +76,21 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({
 
   const pendingRequisitions = requisitions.filter((r) => r.status === 'Pending');
 
+  // Aggregated Health & Clinical Metrics
+  const avgVaccineCoverage = Math.round(
+    centers.reduce((acc, c) => acc + (c.vaccinationCoveragePercent || 90), 0) / (totalAnganwadis || 1)
+  );
+
+  const totalDeficienciesCount = centers.reduce(
+    (acc, c) => acc + (c.deficiencyCasesCount || 3),
+    0
+  );
+
+  const totalDisabilitiesCount = centers.reduce(
+    (acc, c) => acc + (c.disabilityCasesCount || 0),
+    0
+  );
+
   // Filtered centers
   const filteredCenters = centers.filter((center) => {
     const matchesSearch =
@@ -62,13 +98,8 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({
       center.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       center.inChargeName.toLowerCase().includes(searchQuery.toLowerCase());
 
-    if (stockStatusFilter === 'Low/Critical') {
-      return matchesSearch && (center.stockStatus === 'Low' || center.stockStatus === 'Critical');
-    }
-    if (stockStatusFilter === 'Pending Meal') {
-      return matchesSearch && center.foodDistributionStatus !== 'Completed';
-    }
-    return matchesSearch;
+    const matchesCenter = centerFilter === 'All' || center.id === centerFilter || center.code === centerFilter;
+    return matchesSearch && matchesCenter;
   });
 
   return (
@@ -91,616 +122,616 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({
                 Supervisor Meera Rao • Sector 4 Command Center
               </h2>
               <p className="text-xs text-indigo-200/90 mt-0.5">
-                Monitoring 8 Gram Panchayat Anganwadi Centers • POSHAN 2.0 State Surveillance
+                Surveillance across {totalAnganwadis} Anganwadis • POSHAN 2.0 National Child Health Mission
               </p>
             </div>
           </div>
 
-          {/* Supervisor Action Button */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={() => setShowBroadcastModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/40 transition-colors cursor-pointer shadow-md"
+              className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center gap-2"
             >
-              <Megaphone className="w-4 h-4" />
-              <span>Broadcast Sector Notice</span>
+              <Megaphone className="w-4 h-4 text-amber-300" />
+              <span>Broadcast Sector Alert</span>
             </button>
           </div>
         </div>
       </section>
 
-      {/* 4 OVERVIEW STAT CARDS */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Anganwadis Managed */}
-        <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">
-              Total Centers Managed
-            </span>
-            <div className="p-2 rounded-xl bg-indigo-50 text-indigo-700">
-              <Building2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-stone-900">{totalAnganwadis}</span>
-            <span className="text-xs text-emerald-700 font-semibold">100% Operational</span>
-          </div>
-          <p className="text-[11px] text-stone-500 mt-2 pt-2 border-t border-stone-100">
-            Sector 4 (Rampur & Kalyanpur blocks)
-          </p>
-        </div>
-
-        {/* Card 2: Total Enrolled Children */}
-        <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">
-              Total Enrolled Children
-            </span>
-            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-stone-900">{totalEnrolled}</span>
-            <span className="text-xs text-stone-500 font-medium">Ages 0 - 6 yrs</span>
-          </div>
-          <p className="text-[11px] text-stone-500 mt-2 pt-2 border-t border-stone-100">
-            Mother-child beneficiary registry synced
-          </p>
-        </div>
-
-        {/* Card 3: Average Daily Attendance Rate */}
-        <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">
-              Average Attendance Rate
-            </span>
-            <div className="p-2 rounded-xl bg-teal-50 text-teal-700">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-emerald-700">{avgAttendance}%</span>
-            <span className="text-xs text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full font-bold">
-              Above target
-            </span>
-          </div>
-          <p className="text-[11px] text-stone-500 mt-2 pt-2 border-t border-stone-100">
-            Target minimum: 80% daily turnout
-          </p>
-        </div>
-
-        {/* Card 4: Centers with Low Meal/Stock Supply */}
-        <div className={`p-5 rounded-2xl border shadow-xs relative overflow-hidden transition-all ${
-          lowStockCentersCount > 0 ? 'bg-amber-50/70 border-amber-300' : 'bg-white border-stone-200'
-        }`}>
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-900 uppercase tracking-wider">
-              Stock Shortage Alerts
-            </span>
-            <div className="p-2 rounded-xl bg-amber-200 text-amber-900">
-              <AlertTriangle className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-amber-900">{lowStockCentersCount}</span>
-            <span className="text-xs text-rose-700 font-bold">Action Needed</span>
-          </div>
-          <p className="text-[11px] text-amber-800 mt-2 pt-2 border-t border-amber-200">
-            {pendingRequisitions.length} pending supply indents submitted
-          </p>
-        </div>
-      </section>
-
-      {/* Tabs Switcher for Supervisor */}
-      <div className="border-b border-stone-200 flex gap-2 sm:gap-4 overflow-x-auto pb-1">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={`flex items-center gap-2 py-3 px-4 font-semibold text-sm rounded-t-xl transition-all border-b-2 cursor-pointer whitespace-nowrap ${
-            activeTab === 'overview'
-              ? 'border-indigo-600 text-indigo-900 bg-indigo-50/50'
-              : 'border-transparent text-stone-500 hover:text-stone-800 hover:bg-stone-50'
-          }`}
-        >
-          <Building2 className="w-4 h-4" />
-          <span>Anganwadi Center Overview</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-stone-200 text-stone-700 font-bold">
-            {centers.length} Centers
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('analytics')}
-          className={`flex items-center gap-2 py-3 px-4 font-semibold text-sm rounded-t-xl transition-all border-b-2 cursor-pointer whitespace-nowrap ${
-            activeTab === 'analytics'
-              ? 'border-indigo-600 text-indigo-900 bg-indigo-50/50'
-              : 'border-transparent text-stone-500 hover:text-stone-800 hover:bg-stone-50'
-          }`}
-        >
-          <BarChart3 className="w-4 h-4" />
-          <span>Analytics & Reports Section</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-indigo-100 text-indigo-800 font-bold">
-            WHO & Supply Metrics
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('requisitions')}
-          className={`flex items-center gap-2 py-3 px-4 font-semibold text-sm rounded-t-xl transition-all border-b-2 cursor-pointer whitespace-nowrap ${
-            activeTab === 'requisitions'
-              ? 'border-amber-600 text-amber-900 bg-amber-50/50'
-              : 'border-transparent text-stone-500 hover:text-stone-800 hover:bg-stone-50'
-          }`}
-        >
-          <Package className="w-4 h-4" />
-          <span>Pending Stock Indents</span>
-          {pendingRequisitions.length > 0 && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500 text-white font-bold animate-pulse">
-              {pendingRequisitions.length} Pending
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* TAB 1: ANGANWADI CENTER OVERVIEW TABLE & CARDS */}
-      {activeTab === 'overview' && (
+      {/* -------------------- SECTION: HOME -------------------- */}
+      {activeSection === 'home' && (
         <div className="space-y-6">
-          {/* Filter & Search Bar */}
-          <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="relative w-full md:w-80">
-              <Search className="w-4 h-4 absolute left-3.5 top-3 text-stone-400" />
-              <input
-                type="text"
-                placeholder="Search center by name, code or worker..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 rounded-xl border border-stone-300 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              />
+          {/* Key Metrics Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="p-4 rounded-2xl bg-white border border-stone-200 shadow-2xs">
+              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Supervised Centers</span>
+              <span className="text-2xl font-bold text-stone-900 mt-1 block">{totalAnganwadis}</span>
+              <span className="text-[10px] text-stone-500">Sector 4 Jurisdiction</span>
             </div>
 
-            <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
-              <span className="text-xs font-semibold text-stone-500">Filter:</span>
-              {(['All', 'Low/Critical', 'Pending Meal'] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setStockStatusFilter(f)}
-                  className={`text-xs px-3 py-1.5 rounded-xl font-medium cursor-pointer transition-colors whitespace-nowrap ${
-                    stockStatusFilter === f
-                      ? 'bg-indigo-700 text-white shadow-2xs'
-                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-                  }`}
-                >
-                  {f}
-                </button>
-              ))}
+            <div className="p-4 rounded-2xl bg-white border border-stone-200 shadow-2xs">
+              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Total Children</span>
+              <span className="text-2xl font-bold text-stone-900 mt-1 block">{totalEnrolled}</span>
+              <span className="text-[10px] text-stone-500">Across 8 Centers</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-stone-200 shadow-2xs">
+              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Avg Attendance</span>
+              <span className="text-2xl font-bold text-emerald-700 mt-1 block">{avgAttendance}%</span>
+              <span className="text-[10px] text-emerald-600 font-semibold">Today's Check-in</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-stone-200 shadow-2xs">
+              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Pending Requisitions</span>
+              <span className="text-2xl font-bold text-amber-600 mt-1 block">{pendingRequisitions.length}</span>
+              <span className="text-[10px] text-amber-700 font-semibold">Needs Approval</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-stone-200 shadow-2xs">
+              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Deficiencies Total</span>
+              <span className="text-2xl font-bold text-orange-600 mt-1 block">{totalDeficienciesCount}</span>
+              <span className="text-[10px] text-stone-500">Anemia / Vit A Cases</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-stone-200 shadow-2xs">
+              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Vaccine Coverage</span>
+              <span className="text-2xl font-bold text-purple-700 mt-1 block">{avgVaccineCoverage}%</span>
+              <span className="text-[10px] text-purple-600 font-semibold">UIP Sector Average</span>
             </div>
           </div>
 
-          {/* Centers Table */}
-          <div className="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
-            <div className="p-4 sm:p-5 border-b border-stone-200 flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-stone-900">
-                  Anganwadi Centers Directory ({filteredCenters.length} centers)
-                </h3>
-                <p className="text-xs text-stone-500">
-                  Real-time synchronization of center operations, daily attendance, food distribution, and inventory.
-                </p>
+          {/* Quick Action Navigation */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div
+              onClick={() => onNavigateSection && onNavigateSection('stocks')}
+              className="p-5 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 cursor-pointer hover:shadow-md transition-all group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center mb-3 shadow-xs">
+                <Package className="w-5 h-5" />
               </div>
+              <h3 className="font-bold text-stone-900 text-sm group-hover:text-amber-800">
+                Stock Requisitions ({pendingRequisitions.length} Pending)
+              </h3>
+              <p className="text-xs text-stone-600 mt-1">
+                Review and approve grain, ration, and medicine dispatches requested by center workers.
+              </p>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-stone-50 text-stone-600 font-semibold uppercase tracking-wider text-[10px] border-b border-stone-200">
-                  <tr>
-                    <th className="py-3 px-4">Center Code & Name</th>
-                    <th className="py-3 px-3">In-Charge (Worker)</th>
-                    <th className="py-3 px-3">Enrolled / Today</th>
-                    <th className="py-3 px-3">Today's Attendance %</th>
-                    <th className="py-3 px-3">Food Distribution</th>
-                    <th className="py-3 px-3">Stock Level Indicator</th>
-                    <th className="py-3 px-4 text-right">Quick Contact</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-100">
-                  {filteredCenters.map((center) => (
-                    <tr key={center.id} className="hover:bg-stone-50/70 transition-colors">
-                      {/* Code & Name */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
-                            {center.code}
-                          </span>
-                          <div>
-                            <div className="font-bold text-stone-900 text-xs sm:text-sm">
-                              {center.name}
-                            </div>
-                            <div className="text-[11px] text-stone-500">
-                              {center.villageBlock}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
+            <div
+              onClick={() => onNavigateSection && onNavigateSection('health', 'bmi')}
+              className="p-5 rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200 cursor-pointer hover:shadow-md transition-all group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center mb-3 shadow-xs">
+                <Scale className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-stone-900 text-sm group-hover:text-indigo-800">
+                Sector BMI Monitoring & Malnutrition
+              </h3>
+              <p className="text-xs text-stone-600 mt-1">
+                Monitor Moderately Underweight (MAM) and Severely Acute Malnutrition (SAM) across centers.
+              </p>
+            </div>
 
-                      {/* In-Charge */}
-                      <td className="py-3.5 px-3">
-                        <div className="font-semibold text-stone-800">{center.inChargeName}</div>
-                        <span className="text-[10px] text-stone-400 font-mono">
-                          {center.inChargePhone}
-                        </span>
-                      </td>
-
-                      {/* Enrolled */}
-                      <td className="py-3.5 px-3">
-                        <div className="font-bold text-stone-800">
-                          {center.presentTodayCount} / {center.totalEnrolledChildren}
-                        </div>
-                        <span className="text-[10px] text-stone-500">present today</span>
-                      </td>
-
-                      {/* Attendance % with visual bar */}
-                      <td className="py-3.5 px-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-2 bg-stone-100 rounded-full overflow-hidden border border-stone-200">
-                            <div
-                              className={`h-full rounded-full ${
-                                center.attendanceRatePercent >= 88 ? 'bg-emerald-600' : 'bg-amber-500'
-                              }`}
-                              style={{ width: `${center.attendanceRatePercent}%` }}
-                            />
-                          </div>
-                          <span className="font-mono font-bold text-stone-900">
-                            {center.attendanceRatePercent}%
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Food Distribution */}
-                      <td className="py-3.5 px-3">
-                        {center.foodDistributionStatus === 'Completed' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Completed
-                          </span>
-                        )}
-                        {center.foodDistributionStatus === 'In Progress' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                            <Clock className="w-3 h-3 text-amber-600" /> In Progress
-                          </span>
-                        )}
-                        {center.foodDistributionStatus === 'Pending' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
-                            <AlertTriangle className="w-3 h-3 text-rose-600" /> Pending
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Stock Level Indicator */}
-                      <td className="py-3.5 px-3">
-                        {center.stockStatus === 'Good' && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <Check className="w-3 h-3" /> Adequate Supply
-                          </span>
-                        )}
-                        {center.stockStatus === 'Low' && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                            <AlertTriangle className="w-3 h-3 text-amber-600" /> Low Buffer ({center.criticalItemsCount} items)
-                          </span>
-                        )}
-                        {center.stockStatus === 'Critical' && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">
-                            <AlertTriangle className="w-3 h-3 text-rose-600" /> Critical Shortage
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Action */}
-                      <td className="py-3.5 px-4 text-right">
-                        <a
-                          href={`tel:${center.inChargePhone}`}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-stone-200 hover:border-indigo-300 text-stone-700 hover:text-indigo-700 bg-white text-xs font-semibold transition-colors cursor-pointer shadow-2xs"
-                        >
-                          <Phone className="w-3 h-3" />
-                          <span>Call Worker</span>
-                        </a>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div
+              onClick={() => onNavigateSection && onNavigateSection('children')}
+              className="p-5 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 cursor-pointer hover:shadow-md transition-all group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center mb-3 shadow-xs">
+                <Users className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-stone-900 text-sm group-hover:text-emerald-800">
+                Sector Children Directory ({totalEnrolled} Children)
+              </h3>
+              <p className="text-xs text-stone-600 mt-1">
+                Filter and inspect enrolled children across all 8 supervised Anganwadis in Sector 4.
+              </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* TAB 2: ANALYTICS & REPORTS SECTION */}
-      {activeTab === 'analytics' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Chart 1: Attendance Trends across different Anganwadis */}
-            <div className="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-indigo-600" />
-                    1. Attendance Rate Comparison Across Anganwadi Centers
-                  </h3>
-                  <p className="text-xs text-stone-500">
-                    Daily percentage of enrolled children present today
-                  </p>
-                </div>
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                  Average: {avgAttendance}%
-                </span>
-              </div>
-
-              {/* Bar comparison visualization */}
-              <div className="space-y-3 pt-2">
-                {centers.map((center) => (
-                  <div key={center.id} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-stone-800 truncate max-w-[200px]">
-                        {center.name} ({center.code})
-                      </span>
-                      <span className="font-mono font-bold text-stone-900">
-                        {center.attendanceRatePercent}% ({center.presentTodayCount}/{center.totalEnrolledChildren})
-                      </span>
-                    </div>
-
-                    <div className="w-full h-3 bg-stone-100 rounded-full overflow-hidden border border-stone-200 flex">
-                      <div
-                        className={`h-full rounded-full transition-all duration-700 ${
-                          center.attendanceRatePercent >= 90
-                            ? 'bg-emerald-600'
-                            : center.attendanceRatePercent >= 85
-                            ? 'bg-teal-500'
-                            : 'bg-amber-500'
-                        }`}
-                        style={{ width: `${center.attendanceRatePercent}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="pt-2 text-[11px] text-stone-500 flex items-center justify-between border-t border-stone-100">
-                <span>Benchmark threshold: 80%</span>
-                <span className="text-emerald-700 font-semibold">All centers met minimum attendance</span>
-              </div>
-            </div>
-
-            {/* Chart 2: Malnutrition / Health Status Breakdown */}
-            <div className="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                    <PieChart className="w-4 h-4 text-emerald-600" />
-                    2. Child Nutritional Status (WHO Standards)
-                  </h3>
-                  <p className="text-xs text-stone-500">
-                    Aggregated percentage across all 248 enrolled children
-                  </p>
-                </div>
-                <span className="text-xs font-bold text-stone-700 bg-stone-100 px-2 py-0.5 rounded-full">
-                  POSHAN Maah Data
-                </span>
-              </div>
-
-              {/* Segmented breakdown bar */}
-              <div className="space-y-4 pt-3">
-                <div className="h-6 w-full rounded-xl overflow-hidden flex border border-stone-200 shadow-inner">
-                  <div
-                    className="bg-emerald-600 flex items-center justify-center text-[11px] font-bold text-white transition-all"
-                    style={{ width: '83%' }}
-                    title="Normal / Healthy: 83%"
-                  >
-                    83% Normal
-                  </div>
-                  <div
-                    className="bg-amber-500 flex items-center justify-center text-[10px] font-bold text-white transition-all"
-                    style={{ width: '13%' }}
-                    title="Moderate Acute Malnutrition: 13%"
-                  >
-                    13% MAM
-                  </div>
-                  <div
-                    className="bg-rose-600 flex items-center justify-center text-[10px] font-bold text-white transition-all"
-                    style={{ width: '4%' }}
-                    title="Severe Acute Malnutrition: 4%"
-                  >
-                    4%
-                  </div>
-                </div>
-
-                {/* Key indicators */}
-                <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block mb-1"></span>
-                    <div className="font-bold text-emerald-950 text-lg">206</div>
-                    <div className="text-[11px] text-emerald-800 font-semibold">Healthy (Green Zone)</div>
-                    <p className="text-[10px] text-stone-500 mt-1">Normal height & weight</p>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block mb-1"></span>
-                    <div className="font-bold text-amber-950 text-lg">32</div>
-                    <div className="text-[11px] text-amber-800 font-semibold">Moderate (MAM)</div>
-                    <p className="text-[10px] text-stone-500 mt-1">Supplementary ration given</p>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200">
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-600 inline-block mb-1"></span>
-                    <div className="font-bold text-rose-950 text-lg">10</div>
-                    <div className="text-[11px] text-rose-800 font-semibold">Severe (SAM)</div>
-                    <p className="text-[10px] text-stone-500 mt-1">Referred to NRC / PHC</p>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-xs text-stone-600">
-                  <strong>Supervisor Guidance:</strong> Belgiri center has the highest concentration of MAM cases (22%). Schedule intensive visit with ANM and pediatric specialist this Thursday.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Chart 3: Food & Stock Consumption Rates across centers to prevent shortage */}
-          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                  <Package className="w-4 h-4 text-amber-600" />
-                  3. Food & Stock Consumption Rates Across Centers (Buffer Days Remaining)
-                </h3>
-                <p className="text-xs text-stone-500">
-                  Estimated supply run-out date based on current daily consumption to prevent kitchen stoppages
-                </p>
-              </div>
-
-              <span className="text-xs text-stone-500 font-medium">
-                Warehouse Resupply Target: 10 Days Minimum
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-              <div className="p-4 rounded-xl border border-stone-200 bg-stone-50">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Food Item</span>
-                <h4 className="font-bold text-sm text-stone-900 mt-0.5">Fortified Rice</h4>
-                <div className="mt-3 flex items-baseline justify-between text-xs">
-                  <span className="text-stone-500">Buffer Remaining:</span>
-                  <span className="font-bold text-amber-700 font-mono text-sm">~4.9 Days (Low)</span>
-                </div>
-                <div className="w-full h-2 bg-stone-200 rounded-full mt-1.5 overflow-hidden">
-                  <div className="h-full bg-amber-500 rounded-full" style={{ width: '35%' }} />
-                </div>
-                <p className="text-[10px] text-stone-500 mt-2">
-                  Daily Burn: <strong>58 kg</strong> across all 8 centers
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl border border-stone-200 bg-stone-50">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Food Item</span>
-                <h4 className="font-bold text-sm text-stone-900 mt-0.5">Nutri-Millets (Ragi/Bajra)</h4>
-                <div className="mt-3 flex items-baseline justify-between text-xs">
-                  <span className="text-stone-500">Buffer Remaining:</span>
-                  <span className="font-bold text-emerald-700 font-mono text-sm">~16.2 Days (Safe)</span>
-                </div>
-                <div className="w-full h-2 bg-stone-200 rounded-full mt-1.5 overflow-hidden">
-                  <div className="h-full bg-emerald-600 rounded-full" style={{ width: '80%' }} />
-                </div>
-                <p className="text-[10px] text-stone-500 mt-2">
-                  Daily Burn: <strong>26 kg</strong> across all 8 centers
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl border border-stone-200 bg-stone-50">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Food Item</span>
-                <h4 className="font-bold text-sm text-stone-900 mt-0.5">Lentils / Pulses (Dal)</h4>
-                <div className="mt-3 flex items-baseline justify-between text-xs">
-                  <span className="text-stone-500">Buffer Remaining:</span>
-                  <span className="font-bold text-emerald-700 font-mono text-sm">~11.5 Days (Safe)</span>
-                </div>
-                <div className="w-full h-2 bg-stone-200 rounded-full mt-1.5 overflow-hidden">
-                  <div className="h-full bg-emerald-600 rounded-full" style={{ width: '65%' }} />
-                </div>
-                <p className="text-[10px] text-stone-500 mt-2">
-                  Daily Burn: <strong>22 kg</strong> across all 8 centers
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl border border-rose-300 bg-rose-50/60 ring-2 ring-rose-400/20">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-800 block">Medical Item</span>
-                <h4 className="font-bold text-sm text-rose-950 mt-0.5">Milk Powder & IFA Syrup</h4>
-                <div className="mt-3 flex items-baseline justify-between text-xs">
-                  <span className="text-rose-800">Buffer Remaining:</span>
-                  <span className="font-bold text-rose-700 font-mono text-sm">~3.2 Days (Critical)</span>
-                </div>
-                <div className="w-full h-2 bg-rose-200 rounded-full mt-1.5 overflow-hidden">
-                  <div className="h-full bg-rose-600 rounded-full" style={{ width: '22%' }} />
-                </div>
-                <p className="text-[10px] text-rose-800 mt-2">
-                  Belgiri & Rampur centers require emergency dispatch
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 3: STOCK REQUISITION REVIEW */}
-      {activeTab === 'requisitions' && (
-        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
+      {/* -------------------- SECTION: CHILDREN -------------------- */}
+      {activeSection === 'children' && (
+        <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-2xs space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-stone-200">
             <div>
-              <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                <Package className="w-4 h-4 text-amber-600" />
-                Anganwadi Center Supply Indents & Requisitions
+              <h3 className="text-base font-bold text-stone-900">
+                Sector Children Directory & Center Filter
               </h3>
               <p className="text-xs text-stone-500">
-                Review and approve replenishment requests submitted by Anganwadi workers
+                Authorized supervision view of children enrolled across Sector 4
+              </p>
+            </div>
+
+            {/* Filter by Anganwadi Center */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-semibold text-stone-600">Filter Anganwadi:</span>
+              <select
+                value={centerFilter}
+                onChange={(e) => setCenterFilter(e.target.value)}
+                className="p-2 rounded-xl border border-stone-300 bg-white font-semibold text-stone-900 cursor-pointer"
+              >
+                <option value="All">All 8 Centers</option>
+                {centers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-2xl border border-stone-200">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-stone-50 text-stone-600 font-semibold border-b border-stone-200">
+                <tr>
+                  <th className="p-3">Child Name & ID</th>
+                  <th className="p-3">Center Assigned</th>
+                  <th className="p-3">Age / Gender</th>
+                  <th className="p-3">Attendance</th>
+                  <th className="p-3">Growth Category</th>
+                  <th className="p-3">Deficiency Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {childrenList.map((c) => (
+                  <tr key={c.id} className="hover:bg-stone-50/50">
+                    <td className="p-3">
+                      <span className="font-bold text-stone-900 block">{c.name}</span>
+                      <span className="font-mono text-[10px] text-stone-400">ID: {c.id}</span>
+                    </td>
+                    <td className="p-3">
+                      <span className="font-semibold text-stone-800">{c.centerName}</span>
+                    </td>
+                    <td className="p-3">
+                      <span>{c.age}</span>
+                      <span className="text-[10px] text-stone-400 block">{c.gender}</span>
+                    </td>
+                    <td className="p-3">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        c.attendanceToday === 'Present' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                      }`}>
+                        {c.attendanceToday}
+                      </span>
+                    </td>
+                    <td className="p-3 font-semibold text-stone-800">
+                      {c.growthHistory[c.growthHistory.length - 1]?.whoCategory || 'Normal'}
+                    </td>
+                    <td className="p-3">
+                      {c.deficiencies && c.deficiencies.length > 0 ? (
+                        <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-amber-100 text-amber-800">
+                          {c.deficiencies[0].type}
+                        </span>
+                      ) : (
+                        <span className="text-stone-400 text-[11px]">Normal</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- SECTION: HEALTH DETAILS -------------------- */}
+      {activeSection === 'health' && (
+        <div className="space-y-6">
+          {/* Sub-view: Overview */}
+          {healthSubSection === 'overview' && (
+            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-2xs space-y-6">
+              <div className="pb-4 border-b border-stone-200">
+                <h3 className="text-base font-bold text-stone-900">
+                  Sector 4 Consolidated Health & Clinical Overview
+                </h3>
+                <p className="text-xs text-stone-500">
+                  Macro metrics for malnutrition, immunization, and nutritional deficiencies
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200">
+                  <span className="text-stone-400 font-semibold block text-[10px]">Normal Growth Prevalence</span>
+                  <span className="text-2xl font-bold text-emerald-700 mt-1 block">82.2%</span>
+                  <span className="text-stone-500 text-[11px]">227 of 276 children normal</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200">
+                  <span className="text-stone-400 font-semibold block text-[10px]">Moderate Malnutrition (MAM)</span>
+                  <span className="text-2xl font-bold text-amber-600 mt-1 block">14.1%</span>
+                  <span className="text-stone-500 text-[11px]">39 children under supplementary nutrition</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200">
+                  <span className="text-stone-400 font-semibold block text-[10px]">Severe Acute Malnutrition (SAM)</span>
+                  <span className="text-2xl font-bold text-rose-600 mt-1 block">3.6%</span>
+                  <span className="text-stone-500 text-[11px]">10 children referred to NRC</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Sub-view: BMI Monitoring */}
+          {healthSubSection === 'bmi' && (
+            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-2xs space-y-6">
+              <div className="pb-4 border-b border-stone-200">
+                <h3 className="text-base font-bold text-stone-900">
+                  Sector-Wide Child BMI Monitoring & Malnutrition Surveillance
+                </h3>
+                <p className="text-xs text-stone-500">
+                  Center-by-center comparison of WHO Child Growth Standards (Z-scores)
+                </p>
+              </div>
+
+              <div className="overflow-x-auto rounded-2xl border border-stone-200">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-stone-50 text-stone-600 font-semibold border-b border-stone-200">
+                    <tr>
+                      <th className="p-3">Anganwadi Center</th>
+                      <th className="p-3">Enrolled</th>
+                      <th className="p-3">Normal BMI</th>
+                      <th className="p-3">Underweight (MAM)</th>
+                      <th className="p-3">Severe (SAM)</th>
+                      <th className="p-3">NRC Referrals</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {centers.map((c) => (
+                      <tr key={c.id} className="hover:bg-stone-50/50">
+                        <td className="p-3 font-bold text-stone-900">{c.name}</td>
+                        <td className="p-3 font-semibold">{c.totalEnrolledChildren}</td>
+                        <td className="p-3 text-emerald-700 font-bold">
+                          {Math.round(c.totalEnrolledChildren * 0.82)} (82%)
+                        </td>
+                        <td className="p-3 text-amber-700 font-bold">
+                          {Math.round(c.totalEnrolledChildren * 0.14)} (14%)
+                        </td>
+                        <td className="p-3 text-rose-700 font-bold">
+                          {Math.round(c.totalEnrolledChildren * 0.04)} (4%)
+                        </td>
+                        <td className="p-3 font-mono text-stone-600">Active Monitoring</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Sub-view: Deficiency */}
+          {healthSubSection === 'deficiency' && (
+            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-2xs space-y-6">
+              <div className="pb-4 border-b border-stone-200">
+                <h3 className="text-base font-bold text-stone-900">
+                  Micronutrient Deficiency Surveillance Across Centers
+                </h3>
+                <p className="text-xs text-stone-500">
+                  Tracking Anemia, Vitamin A deficiency, and therapeutic supplement supplies
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200">
+                  <span className="font-bold text-amber-950 block">Iron Deficiency Anemia</span>
+                  <span className="text-2xl font-bold text-amber-900 mt-1 block">15 Cases</span>
+                  <span className="text-[10px] text-stone-600">Supplied with IFA Syrup</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200">
+                  <span className="font-bold text-amber-950 block">Vitamin A Deficiency</span>
+                  <span className="text-2xl font-bold text-amber-900 mt-1 block">6 Cases</span>
+                  <span className="text-[10px] text-stone-600">Bi-annual Vitamin A dose</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200">
+                  <span className="font-bold text-amber-950 block">Zinc / Other Deficiencies</span>
+                  <span className="text-2xl font-bold text-amber-900 mt-1 block">3 Cases</span>
+                  <span className="text-[10px] text-stone-600">Under therapeutic diet</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Sub-view: Disability */}
+          {healthSubSection === 'disability' && (
+            <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-2xs space-y-6">
+              <div className="pb-4 border-b border-stone-200">
+                <h3 className="text-base font-bold text-stone-900">
+                  Sector Disability Registry (Divyangjan Support)
+                </h3>
+                <p className="text-xs text-stone-500">
+                  5 children with special healthcare needs registered across Sector 4
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-blue-950 text-sm">Inclusive Early Childhood Education Support</span>
+                  <span className="px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-blue-200 text-blue-900">
+                    UDID Verified: 4 / 5
+                  </span>
+                </div>
+                <p className="text-stone-700">
+                  District Early Intervention Center (DEIC) mobile therapy teams visit centers on the 2nd Thursday of each month.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* -------------------- SECTION: ATTENDANCE DETAILS -------------------- */}
+      {activeSection === 'attendance' && (
+        <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-2xs space-y-6">
+          <div className="pb-4 border-b border-stone-200">
+            <h3 className="text-base font-bold text-stone-900">
+              Center-Wise Attendance Comparison & Trends
+            </h3>
+            <p className="text-xs text-stone-500">
+              Daily and monthly attendance statistics across all 8 Anganwadis
+            </p>
+          </div>
+
+          <div className="overflow-x-auto rounded-2xl border border-stone-200">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-stone-50 text-stone-600 font-semibold border-b border-stone-200">
+                <tr>
+                  <th className="p-3">Anganwadi Name & Code</th>
+                  <th className="p-3">Worker In-Charge</th>
+                  <th className="p-3">Enrolled</th>
+                  <th className="p-3">Attendance Rate</th>
+                  <th className="p-3">Performance Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {centers.map((c) => (
+                  <tr key={c.id} className="hover:bg-stone-50/50">
+                    <td className="p-3">
+                      <span className="font-bold text-stone-900 block">{c.name}</span>
+                      <span className="text-[10px] text-stone-400 font-mono">{c.code}</span>
+                    </td>
+                    <td className="p-3 text-stone-800 font-medium">{c.inChargeName}</td>
+                    <td className="p-3 font-semibold">{c.totalEnrolledChildren}</td>
+                    <td className="p-3 font-bold text-emerald-700">{c.attendanceRatePercent}%</td>
+                    <td className="p-3">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        c.attendanceRatePercent >= 88 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {c.attendanceRatePercent >= 88 ? 'High Attendance' : 'Follow-up Needed'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- SECTION: CONSULTATION -------------------- */}
+      {activeSection === 'consultation' && (
+        <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-2xs space-y-6">
+          <div className="pb-4 border-b border-stone-200">
+            <h3 className="text-base font-bold text-stone-900">
+              RBSK Mobile Health Team Inspection & Clinical Consultations
+            </h3>
+            <p className="text-xs text-stone-500">
+              Sector pediatric checkup schedules and medical officer reviews
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 text-xs space-y-2">
+            <div className="font-bold text-stone-900 text-sm">Quarterly RBSK Inspection Cycle: Active</div>
+            <p className="text-stone-600">
+              Dr. Ananya Sen and medical health team have covered 6 of 8 centers this quarter. Next inspection scheduled for Rampur Center #12 and Bilaspur Center next Tuesday.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- SECTION: VACCINATION -------------------- */}
+      {activeSection === 'vaccination' && (
+        <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-2xs space-y-6">
+          <div className="pb-4 border-b border-stone-200">
+            <h3 className="text-base font-bold text-stone-900">
+              Universal Immunization Programme (UIP) Sector Coverage
+            </h3>
+            <p className="text-xs text-stone-500">
+              Center-by-center immunization targets and Village Health Sanitation Nutrition Days (VHSND)
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            {centers.map((c) => (
+              <div key={c.id} className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 space-y-1">
+                <span className="font-bold text-stone-900 block truncate">{c.name}</span>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-stone-500 text-[11px]">UIP Coverage:</span>
+                  <span className="text-base font-bold text-purple-800">{c.vaccinationCoveragePercent || 92}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- SECTION: NUTRITION & FOOD -------------------- */}
+      {activeSection === 'nutrition' && (
+        <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-2xs space-y-6">
+          <div className="pb-4 border-b border-stone-200">
+            <h3 className="text-base font-bold text-stone-900">
+              Supplementary Nutrition Programme (SNP) Quality Audit
+            </h3>
+            <p className="text-xs text-stone-500">
+              Monitoring hot cooked meals and take-home ration distributions
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-xs">
+            <div className="font-bold text-emerald-950 text-sm">Meal Distribution Compliance: 100%</div>
+            <p className="text-stone-700 mt-1">
+              All 8 centers reported timely delivery of morning snacks and hot cooked fortified khichdi lunch.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- SECTION: STOCK MANAGEMENT (REQUISITIONS) -------------------- */}
+      {activeSection === 'stocks' && (
+        <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-2xs space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-stone-200">
+            <div>
+              <h3 className="text-base font-bold text-stone-900">
+                Stock Requisitions & Restock Approval ({pendingRequisitions.length} Pending)
+              </h3>
+              <p className="text-xs text-stone-500">
+                Review and approve ration supplies requested by Anganwadi workers
               </p>
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 text-xs">
             {requisitions.map((req) => (
               <div
                 key={req.id}
-                className={`p-4 rounded-2xl border transition-all ${
-                  req.status === 'Pending'
-                    ? 'bg-amber-50/60 border-amber-300'
-                    : 'bg-stone-50 border-stone-200'
-                }`}
+                className="p-4 rounded-2xl border border-stone-200 bg-stone-50/50 flex flex-wrap items-center justify-between gap-3"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm text-stone-900">
-                        {req.itemName} • {req.quantityRequested} {req.unit}
-                      </span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        req.urgency === 'Emergency'
-                          ? 'bg-rose-600 text-white'
-                          : req.urgency === 'High'
-                          ? 'bg-amber-500 text-white'
-                          : 'bg-stone-200 text-stone-700'
-                      }`}>
-                        {req.urgency} Urgency
-                      </span>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                        req.status === 'Approved'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-amber-100 text-amber-900 font-bold'
-                      }`}>
-                        Status: {req.status}
-                      </span>
-                    </div>
-
-                    <div className="text-xs text-stone-600 mt-1">
-                      Center: <strong>{req.centerName}</strong> ({req.centerId}) • Requested on: {req.dateRequested}
-                    </div>
-
-                    <p className="text-xs text-stone-600 mt-2 bg-white/80 p-2 rounded-xl border border-stone-200">
-                      <strong>Worker Reason:</strong> "{req.reason}"
-                    </p>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-stone-900 text-sm">{req.itemName}</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                      {req.quantityRequested} {req.unit}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      req.urgency === 'Emergency' ? 'bg-rose-100 text-rose-800' : 'bg-stone-100 text-stone-700'
+                    }`}>
+                      {req.urgency} Urgency
+                    </span>
                   </div>
+                  <p className="text-[11px] text-stone-600 mt-1">
+                    Requested by: <strong>{req.workerName}</strong> ({req.centerName}) • {req.dateRequested}
+                  </p>
+                  <p className="text-[11px] text-stone-500 italic mt-0.5">"{req.reason}"</p>
+                </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    {req.status === 'Pending' ? (
-                      <button
-                        onClick={() => onApproveRequisition(req.id)}
-                        className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors cursor-pointer shadow-xs"
-                      >
-                        <Check className="w-4 h-4" />
-                        <span>Approve & Dispatch Quota</span>
-                      </button>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1.5 rounded-xl">
-                        <CheckCircle2 className="w-4 h-4" /> Approved for Dispatch
-                      </span>
-                    )}
-                  </div>
+                <div>
+                  {req.status === 'Pending' ? (
+                    <button
+                      onClick={() => onApproveRequisition(req.id)}
+                      className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Approve & Dispatch</span>
+                    </button>
+                  ) : (
+                    <span className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 font-bold text-xs">
+                      Approved & Dispatched
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- SECTION: ALERTS -------------------- */}
+      {activeSection === 'alerts' && (
+        <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-2xs space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-stone-200">
+            <div>
+              <h3 className="text-base font-bold text-stone-900">
+                Sector Alerts & Critical Notifications
+              </h3>
+              <p className="text-xs text-stone-500">
+                Broadcast emergency advisories to workers and parents across Sector 4
+              </p>
+            </div>
+            <button
+              onClick={() => setShowBroadcastModal(true)}
+              className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <Megaphone className="w-3.5 h-3.5" />
+              <span>Broadcast New Notice</span>
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs">
+              <span className="font-bold text-amber-950 block">Rampur Center #12: Low Rice Stock</span>
+              <p className="text-stone-700 mt-0.5">Requisition pending supervisor approval. Current stock: 24 kg.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- SECTION: REPORTS -------------------- */}
+      {activeSection === 'reports' && (
+        <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-2xs space-y-6">
+          <div className="pb-4 border-b border-stone-200 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-stone-900">
+                CDPO Sector 4 Inspection Summary & Compliance Reports
+              </h3>
+              <p className="text-xs text-stone-500">
+                Quarterly performance scorecards and POSHAN Abhiyaan governance returns
+              </p>
+            </div>
+            <button
+              onClick={() => alert('Sector compliance report exported successfully!')}
+              className="px-3.5 py-2 rounded-xl bg-stone-900 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Export Sector Summary</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200">
+              <span className="text-stone-400 font-semibold block text-[10px]">Center Compliance Score</span>
+              <span className="text-2xl font-bold text-emerald-800 mt-1 block">96.4%</span>
+              <span className="text-stone-500 text-[11px]">Rank 1 in District</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200">
+              <span className="text-stone-400 font-semibold block text-[10px]">Total THR Dispatched</span>
+              <span className="text-2xl font-bold text-stone-900 mt-1 block">1,240 kg</span>
+              <span className="text-stone-500 text-[11px]">This month</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200">
+              <span className="text-stone-400 font-semibold block text-[10px]">Aadhaar Seeding Rate</span>
+              <span className="text-2xl font-bold text-indigo-800 mt-1 block">98.2%</span>
+              <span className="text-stone-500 text-[11px]">271 / 276 verified</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- SECTION: PROFILE / SETTINGS -------------------- */}
+      {activeSection === 'profile' && (
+        <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-2xs space-y-6">
+          <div className="pb-4 border-b border-stone-200">
+            <h3 className="text-base font-bold text-stone-900">
+              Supervisor Profile & Division Info
+            </h3>
+            <p className="text-xs text-stone-500">
+              Child Development Project Officer jurisdiction details
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200">
+              <span className="text-[10px] text-stone-400 block font-semibold">Supervisor Name</span>
+              <span className="text-sm font-bold text-stone-900">Meera Rao</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200">
+              <span className="text-[10px] text-stone-400 block font-semibold">Designation</span>
+              <span className="text-sm font-bold text-stone-900">Child Development Project Officer (CDPO)</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200">
+              <span className="text-[10px] text-stone-400 block font-semibold">Jurisdiction</span>
+              <span className="text-sm font-bold text-stone-900">Sector 4 Division (8 Anganwadi Centers)</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200">
+              <span className="text-[10px] text-stone-400 block font-semibold">Official ID</span>
+              <span className="text-sm font-bold font-mono text-stone-900">SUP-402</span>
+            </div>
           </div>
         </div>
       )}

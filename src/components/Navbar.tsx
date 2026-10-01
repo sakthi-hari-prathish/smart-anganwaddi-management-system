@@ -12,7 +12,11 @@ import {
   AlertTriangle,
   Info,
   ShieldCheck,
-  Languages
+  Languages,
+  LogIn,
+  KeyRound,
+  Menu,
+  ArrowLeftRight
 } from 'lucide-react';
 import { UserRole, NotificationAlert } from '../types';
 
@@ -24,6 +28,8 @@ interface NavbarProps {
   onMarkAllRead: () => void;
   language: 'en' | 'hi';
   onToggleLanguage: () => void;
+  onOpenLoginModal?: () => void;
+  onToggleMobileSidebar?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -34,6 +40,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onMarkAllRead,
   language,
   onToggleLanguage,
+  onOpenLoginModal,
+  onToggleMobileSidebar,
 }) => {
   const [currentTime, setCurrentTime] = useState<string>('');
   const [currentDate, setCurrentDate] = useState<string>('');
@@ -44,18 +52,19 @@ export const Navbar: React.FC<NavbarProps> = ({
     const updateDateTime = () => {
       const now = new Date();
       setCurrentDate(
-        now.toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-US', {
+        now.toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', {
           weekday: 'short',
-          month: 'short',
           day: 'numeric',
+          month: 'short',
           year: 'numeric',
         })
       );
       setCurrentTime(
-        now.toLocaleTimeString(language === 'hi' ? 'hi-IN' : 'en-US', {
+        now.toLocaleTimeString(language === 'hi' ? 'hi-IN' : 'en-IN', {
           hour: '2-digit',
           minute: '2-digit',
           second: '2-digit',
+          hour12: true,
         })
       );
     };
@@ -67,52 +76,52 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const roleDetails: Record<
-    UserRole,
-    { title: string; subtitle: string; badge: string; color: string; bg: string }
-  > = {
+  const roleDetails = {
     parent: {
-      title: 'Pooja Sharma',
-      subtitle: language === 'hi' ? 'अभिभावक (आरव शर्मा)' : 'Parent (Child: Aarav)',
-      badge: 'Parent Portal',
-      color: 'text-amber-800',
-      bg: 'bg-amber-100 border-amber-300',
+      title: 'Parent View',
+      badge: 'Family Portal',
+      subtitle: 'Pooja Sharma (Aarav)',
+      color: 'bg-amber-100 text-amber-900 border-amber-300',
+      bg: 'bg-amber-500/10 text-amber-900 border-amber-300',
+      icon: '👨‍👩‍👦',
     },
     worker: {
-      title: 'Sunita Devi',
-      subtitle: language === 'hi' ? 'आंगनवाड़ी कार्यकर्ता (केंद्र #12)' : 'Anganwadi Worker (Center #12)',
-      badge: 'Worker Portal',
-      color: 'text-emerald-800',
-      bg: 'bg-emerald-100 border-emerald-300',
+      title: 'Anganwadi Worker',
+      badge: 'Center Lead',
+      subtitle: 'Sunita Devi (AW-101)',
+      color: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+      bg: 'bg-emerald-500/10 text-emerald-900 border-emerald-300',
+      icon: '👩‍🏫',
     },
     supervisor: {
-      title: 'Meera Rao',
-      subtitle: language === 'hi' ? 'सीडीपीओ पर्यवेक्षक (सेक्टर 4)' : 'CDPO Supervisor (Sector 4)',
-      badge: 'Supervisor HQ',
-      color: 'text-indigo-800',
-      bg: 'bg-indigo-100 border-indigo-300',
+      title: 'CDPO Supervisor',
+      badge: 'Sector Head',
+      subtitle: 'Meera Rao (Sector 4)',
+      color: 'bg-indigo-100 text-indigo-900 border-indigo-300',
+      bg: 'bg-indigo-500/10 text-indigo-900 border-indigo-300',
+      icon: '📋',
     },
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200 shadow-xs">
-      {/* Top emergency & government banner */}
-      <div className="bg-stone-900 text-stone-200 text-xs px-4 py-1.5 flex flex-wrap items-center justify-between gap-2">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-2xs">
+      {/* Top micro-bar: Government of India & POSHAN branding */}
+      <div className="bg-stone-900 text-stone-300 text-[11px] py-1 px-4 sm:px-6 lg:px-8 flex items-center justify-between border-b border-stone-800">
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-            Govt. of India • ICDS POSHAN 2.0
+          <span className="font-semibold text-stone-100 flex items-center gap-1.5">
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+            Ministry of Women & Child Development
           </span>
-          <span className="hidden sm:inline text-stone-400">|</span>
-          <span className="hidden sm:inline text-stone-300 text-[11px]">
-            Integrated Child Development Services e-Monitoring Portal
+          <span className="text-stone-500 hidden sm:inline">•</span>
+          <span className="text-stone-400 hidden sm:inline">
+            POSHAN Abhiyaan 2.0 • ICDS Digital Mission
           </span>
         </div>
 
-        <div className="flex items-center gap-4 text-[11px] ml-auto">
-          <div className="flex items-center gap-1.5 text-amber-300">
-            <PhoneCall className="w-3.5 h-3.5" />
-            <span>Toll-Free POSHAN: <strong>14408</strong> / Childline: <strong>1098</strong></span>
-          </div>
+        <div className="flex items-center gap-3">
+          <span className="hidden md:inline text-stone-400">
+            Toll-Free POSHAN Helpline: <strong className="text-stone-200">14408</strong>
+          </span>
           <button
             onClick={onToggleLanguage}
             className="flex items-center gap-1 px-2 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 transition-colors cursor-pointer"
@@ -125,11 +134,21 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Main Navbar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-3">
-        {/* Brand identity */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between gap-3">
+        {/* Left: Mobile hamburger menu toggle + Brand identity */}
         <div className="flex items-center gap-3">
-          <div className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-md shadow-emerald-700/20 ring-2 ring-emerald-500/20">
-            <HeartHandshake className="w-6 h-6 text-white" />
+          {onToggleMobileSidebar && (
+            <button
+              onClick={onToggleMobileSidebar}
+              className="lg:hidden p-2 rounded-xl text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors cursor-pointer"
+              aria-label="Toggle navigation menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          )}
+
+          <div className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-md shadow-emerald-700/20 ring-2 ring-emerald-500/20">
+            <HeartHandshake className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             <span className="absolute -bottom-1 -right-1 flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border-2 border-white"></span>
@@ -138,7 +157,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-stone-900 font-serif">
+              <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-stone-900 font-serif">
                 Anganwadi <span className="text-emerald-700 font-extrabold">Care</span>
               </h1>
               <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -147,8 +166,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <p className="text-xs text-stone-500 hidden sm:block">
               {language === 'hi' 
-                ? 'मातृ एवं शिशु पोषण, स्वास्थ्य व प्री-स्कूल प्रबंधन' 
-                : 'Maternal, Child Nutrition, Health & Early Childhood Tracker'}
+                ? 'मातृ एवं शिशु पोषण, स्वास्थ्य व बाल विकास प्रबंधन' 
+                : 'Maternal, Child Nutrition, Health & Early Development Portal'}
             </p>
           </div>
         </div>
@@ -166,39 +185,49 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Right Action controls: Notifications & Role Switcher */}
+        {/* Right Action controls: Switch Account, Notifications & Role Switcher */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Notification Button & Drawer */}
+          {/* Switch Account (Auth Required) button */}
+          {onOpenLoginModal && (
+            <button
+              onClick={onOpenLoginModal}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-stone-800 bg-stone-100 hover:bg-stone-200 border border-stone-300 transition-all cursor-pointer shadow-2xs"
+              title="Switch Account (requires Role, Username, Password)"
+            >
+              <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Switch Account</span>
+            </button>
+          )}
+
+          {/* Notifications bell button */}
           <div className="relative">
             <button
-              id="notifications-button"
               onClick={() => {
                 setShowNotifications(!showNotifications);
                 setShowRoleMenu(false);
               }}
-              className="relative p-2.5 rounded-xl text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors border border-stone-200/70 cursor-pointer"
-              aria-label="View notifications"
+              className="relative p-2 sm:p-2.5 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-700 transition-colors cursor-pointer"
+              title="Notifications"
             >
-              <Bell className="w-5 h-5" />
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-stone-600" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-amber-600 rounded-full border-2 border-white shadow-xs">
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-rose-600 text-white text-[10px] font-bold ring-2 ring-white">
                   {unreadCount}
                 </span>
               )}
             </button>
 
-            {/* Notification Dropdown */}
+            {/* Notifications Dropdown */}
             {showNotifications && (
               <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-stone-200 p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                 <div className="flex items-center justify-between pb-3 border-b border-stone-100">
                   <div className="flex items-center gap-2">
-                    <Bell className="w-4 h-4 text-emerald-600" />
-                    <h3 className="font-semibold text-stone-800 text-sm">Center Alerts & Notices</h3>
-                    {unreadCount > 0 && (
-                      <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-medium">
-                        {unreadCount} new
-                      </span>
-                    )}
+                    <h3 className="font-bold text-xs uppercase tracking-wider text-stone-900">
+                      Notifications & Alerts
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                      {unreadCount} new
+                    </span>
                   </div>
                   {unreadCount > 0 && (
                     <button
@@ -243,35 +272,26 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-            {/* Role Switcher Pill / Dropdown */}
-            <div className="relative">
+          {/* Role Indicator Pill / Dropdown */}
+          <div className="relative">
             <button
-              id="role-switcher-toggle"
               onClick={() => {
                 setShowRoleMenu(!showRoleMenu);
                 setShowNotifications(false);
               }}
-              className={`flex items-center gap-2.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border transition-all cursor-pointer shadow-xs ${roleDetails[currentRole].bg}`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all cursor-pointer shadow-xs ${roleDetails[currentRole].bg}`}
             >
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/90 shadow-2xs flex items-center justify-center font-bold text-xs">
-                {currentRole === 'parent' && '👨‍👩‍👦'}
-                {currentRole === 'worker' && '👩‍🏫'}
-                {currentRole === 'supervisor' && '📋'}
+              <div className="w-7 h-7 rounded-lg bg-white/90 shadow-2xs flex items-center justify-center font-bold text-xs">
+                {roleDetails[currentRole].icon}
               </div>
 
               <div className="text-left hidden sm:block">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-bold text-stone-900">{roleDetails[currentRole].title}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${roleDetails[currentRole].color}`}>
-                    {roleDetails[currentRole].badge}
-                  </span>
                 </div>
-                <p className="text-[11px] text-stone-600 font-medium truncate max-w-[150px]">
-                  {roleDetails[currentRole].subtitle}
-                </p>
               </div>
 
-              <ChevronDown className="w-4 h-4 text-stone-600 ml-0.5" />
+              <ChevronDown className="w-3.5 h-3.5 text-stone-600 ml-0.5" />
             </button>
 
             {/* Dropdown menu */}
@@ -279,15 +299,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-stone-200 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                 <div className="px-3 py-2 border-b border-stone-100">
                   <p className="text-xs font-bold uppercase tracking-wider text-stone-400">
-                    Switch Perspective (RBAC)
+                    Switch Active Role
                   </p>
                   <p className="text-xs text-stone-500 mt-0.5">
-                    Select a persona to preview the system
+                    Fast preview toggle or authenticate
                   </p>
                 </div>
 
                 <div className="mt-1 space-y-1">
-                  {/* Parent */}
                   <button
                     onClick={() => {
                       onRoleChange('parent');
@@ -295,21 +314,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                     }}
                     className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-colors cursor-pointer ${
                       currentRole === 'parent'
-                        ? 'bg-amber-50 text-amber-900 border border-amber-200'
+                        ? 'bg-amber-50 text-amber-900 border border-amber-200 font-bold'
                         : 'hover:bg-stone-50 text-stone-700'
                     }`}
                   >
                     <span className="text-xl">👨‍👩‍👦</span>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold">Parent (Pooja Sharma)</span>
-                        <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium">Child: Aarav</span>
-                      </div>
-                      <p className="text-[11px] text-stone-500">Child health, WHO growth, vaccines, meal plan</p>
+                    <div>
+                      <span className="text-xs font-bold block">Parent View</span>
+                      <span className="text-[11px] text-stone-500">Child profile, growth, vaccines</span>
                     </div>
                   </button>
 
-                  {/* Worker */}
                   <button
                     onClick={() => {
                       onRoleChange('worker');
@@ -317,21 +332,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                     }}
                     className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-colors cursor-pointer ${
                       currentRole === 'worker'
-                        ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
+                        ? 'bg-emerald-50 text-emerald-900 border border-emerald-200 font-bold'
                         : 'hover:bg-stone-50 text-stone-700'
                     }`}
                   >
                     <span className="text-xl">👩‍🏫</span>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold">Anganwadi Worker / Helper</span>
-                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-medium">Sunita Devi</span>
-                      </div>
-                      <p className="text-[11px] text-stone-500">Rampur Center #12: Inventory & child daily logs</p>
+                    <div>
+                      <span className="text-xs font-bold block">Anganwadi Worker</span>
+                      <span className="text-[11px] text-stone-500">BMI calc, records, stock rations</span>
                     </div>
                   </button>
 
-                  {/* Supervisor */}
                   <button
                     onClick={() => {
                       onRoleChange('supervisor');
@@ -339,24 +350,32 @@ export const Navbar: React.FC<NavbarProps> = ({
                     }}
                     className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-colors cursor-pointer ${
                       currentRole === 'supervisor'
-                        ? 'bg-indigo-50 text-indigo-900 border border-indigo-200'
+                        ? 'bg-indigo-50 text-indigo-900 border border-indigo-200 font-bold'
                         : 'hover:bg-stone-50 text-stone-700'
                     }`}
                   >
                     <span className="text-xl">📋</span>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold">CDPO Supervisor</span>
-                        <span className="text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-medium">Meera Rao</span>
-                      </div>
-                      <p className="text-[11px] text-stone-500">Sector 4 overview, cross-center analytics, supplies</p>
+                    <div>
+                      <span className="text-xs font-bold block">CDPO Supervisor</span>
+                      <span className="text-[11px] text-stone-500">Sector surveillance & requisitions</span>
                     </div>
                   </button>
-                </div>
 
-                <div className="mt-2 pt-2 border-t border-stone-100 px-3 py-1 text-[11px] text-stone-500 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Secure POSHAN 2.0 Identity Protocol</span>
+                  {/* Switch Account with Credentials */}
+                  {onOpenLoginModal && (
+                    <div className="pt-2 border-t border-stone-100">
+                      <button
+                        onClick={() => {
+                          setShowRoleMenu(false);
+                          onOpenLoginModal();
+                        }}
+                        className="w-full py-2 px-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                      >
+                        <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Authenticate with Credentials</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

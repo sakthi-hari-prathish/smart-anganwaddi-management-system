@@ -5,7 +5,7 @@ import { Child } from '../../types';
 interface DigitalImmunizationCardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  child: Child;
+  child: Child | null;
 }
 
 export const DigitalImmunizationCardModal: React.FC<DigitalImmunizationCardModalProps> = ({
@@ -13,7 +13,7 @@ export const DigitalImmunizationCardModal: React.FC<DigitalImmunizationCardModal
   onClose,
   child,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen || !child) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto">
